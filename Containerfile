@@ -20,7 +20,7 @@ RUN zypper install -y \
       zstd && \
     zypper clean -a
 
-ARG DEV_DEPS="git rust make cargo gcc-devel glib2-devel libzstd-devel openssl-devel ostree-devel"
+ARG DEV_DEPS="git rust make cargo gcc-devel glib2-devel libzstd-devel openssl-devel libostree-devel go-md2man"
 RUN --mount=type=tmpfs,dst=/tmp --mount=type=tmpfs,dst=/root \
     zypper install -y ${DEV_DEPS} && \
     git clone "https://github.com/bootc-dev/bootc.git" /tmp/bootc && \
