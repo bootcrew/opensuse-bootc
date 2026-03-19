@@ -1,3 +1,7 @@
+# This repository is deprecated!
+
+Moved to <https://github.com/bootcrew/mono>
+
 # OpenSUSE Bootc
 
 Reference [OpenSUSE](https://www.opensuse.org/) container image preconfigured for [bootc](https://github.com/bootc-dev/bootc) usage.
