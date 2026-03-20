@@ -1,5 +1,7 @@
 FROM registry.opensuse.org/opensuse/tumbleweed:latest
 
+ARG ZYPP_NON_INTERACTIVE=1
+
 RUN zypper install -y \
       binutils \
       btrfs-progs \
@@ -18,16 +20,17 @@ RUN zypper install -y \
       zstd && \
     zypper clean -a
 
-ENV DEV_DEPS="git rust make cargo gcc-devel glib2-devel libzstd-devel openssl-devel ostree-devel"
+ARG DEV_DEPS="git rust make cargo gcc-devel glib2-devel libzstd-devel openssl-devel libostree-devel go-md2man"
 RUN --mount=type=tmpfs,dst=/tmp --mount=type=tmpfs,dst=/root \
     zypper install -y ${DEV_DEPS} && \
     git clone "https://github.com/bootc-dev/bootc.git" /tmp/bootc && \
-    make -C /tmp/bootc bin install-all install-initramfs-dracut && \
+    make -C /tmp/bootc bin install-all && \
+    printf "systemdsystemconfdir=/etc/systemd/system\nsystemdsystemunitdir=/usr/lib/systemd/system\n" | tee /usr/lib/dracut/dracut.conf.d/30-bootcrew-fix-bootc-module.conf && \
+    printf 'reproducible=yes\nhostonly=no\ncompress=zstd\nadd_dracutmodules+=" bootc "' | tee "/usr/lib/dracut/dracut.conf.d/30-bootcrew-bootc-container-build.conf" && \
     sh -c 'export KERNEL_VERSION="$(basename "$(find /usr/lib/modules -maxdepth 1 -type d | grep -v -E "*.img" | tail -n 1)")" && \
     dracut --force --no-hostonly --force-drivers erofs --reproducible --zstd --verbose --kver "$KERNEL_VERSION"  "/usr/lib/modules/$KERNEL_VERSION/initramfs.img"' && \
     zypper remove -y ${DEV_DEPS} && \
     zypper clean -a
-ENV DEV_DEPS=""
 
 # Necessary for general behavior expected by image-based systems
 RUN echo "HOME=/var/home" | tee "/etc/default/useradd" && \
@@ -44,7 +47,7 @@ RUN echo "HOME=/var/home" | tee "/etc/default/useradd" && \
 
 # Setup a temporary root passwd (changeme) for dev purposes
 # TODO: Replace this for a more robust option when in prod
-RUN usermod -p '$6$AJv9RHlhEXO6Gpul$5fvVTZXeM0vC03xckTIjY8rdCofnkKSzvF5vEzXDKAby5p3qaOGTHDypVVxKsCE3CbZz7C3NXnbpITrEUvN/Y/' root
+# RUN usermod -p '$6$AJv9RHlhEXO6Gpul$5fvVTZXeM0vC03xckTIjY8rdCofnkKSzvF5vEzXDKAby5p3qaOGTHDypVVxKsCE3CbZz7C3NXnbpITrEUvN/Y/' root
 
 # If you want a desktop :)
 # RUN zypper install -y -t pattern kde && zypper install -y konsole sddm-qt6 vim dolphin
