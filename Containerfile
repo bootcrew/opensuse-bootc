@@ -18,11 +18,11 @@ RUN zypper install -y \
       zstd && \
     zypper clean -a
 
-ENV DEV_DEPS="git rust make cargo gcc-devel glib2-devel libzstd-devel openssl-devel ostree-devel"
+ENV DEV_DEPS="git rust make cargo gcc-devel glib2-devel libzstd-devel openssl-devel libostree-devel go-md2man"
 RUN --mount=type=tmpfs,dst=/tmp --mount=type=tmpfs,dst=/root \
     zypper install -y ${DEV_DEPS} && \
     git clone "https://github.com/bootc-dev/bootc.git" /tmp/bootc && \
-    make -C /tmp/bootc bin install-all install-initramfs-dracut && \
+    make -C /tmp/bootc bin install-all && \
     sh -c 'export KERNEL_VERSION="$(basename "$(find /usr/lib/modules -maxdepth 1 -type d | grep -v -E "*.img" | tail -n 1)")" && \
     dracut --force --no-hostonly --force-drivers erofs --reproducible --zstd --verbose --kver "$KERNEL_VERSION"  "/usr/lib/modules/$KERNEL_VERSION/initramfs.img"' && \
     zypper remove -y ${DEV_DEPS} && \
@@ -47,7 +47,16 @@ RUN echo "HOME=/var/home" | tee "/etc/default/useradd" && \
 RUN usermod -p '$6$AJv9RHlhEXO6Gpul$5fvVTZXeM0vC03xckTIjY8rdCofnkKSzvF5vEzXDKAby5p3qaOGTHDypVVxKsCE3CbZz7C3NXnbpITrEUvN/Y/' root
 
 # If you want a desktop :)
-# RUN zypper install -y -t pattern kde && zypper install -y konsole sddm-qt6 vim dolphin
+#RUN zypper install -y -t pattern kde && zypper install -y konsole sddm-qt6 vim dolphin just
+# Copy Homebrew files from the brew image
+# And enable
+COPY --from=ghcr.io/ublue-os/brew:latest /system_files /
+RUN --mount=type=cache,dst=/var/cache \
+    --mount=type=cache,dst=/var/log \
+    --mount=type=tmpfs,dst=/tmp \
+    /usr/bin/systemctl preset brew-setup.service && \
+    /usr/bin/systemctl preset brew-update.timer && \
+    /usr/bin/systemctl preset brew-upgrade.timer
 
 # Necessary labels
 LABEL containers.bootc 1
